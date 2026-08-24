@@ -1,0 +1,38 @@
+{
+  "name": "mohebyapis",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate": "knex migrate:latest --env development",
+    "migrate:dev": "knex migrate:latest --env development",
+    "migrate:staging": "knex migrate:latest --env staging",
+    "migrate:prod": "knex migrate:latest --env production",
+    "migrate:fresh": "knex migrate:rollback --all && knex migrate:latest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@turf/turf": "^7.3.5",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.21",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "firebase-admin": "^14.2.0",
+    "google-auth-library": "^10.7.0",
+    "joi": "^18.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "knex": "^3.2.10",
+    "multer": "^2.2.0",
+    "pg": "^8.21.0",
+    "slugify": "^1.6.9",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
