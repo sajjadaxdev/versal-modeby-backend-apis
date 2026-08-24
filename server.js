@@ -77,11 +77,16 @@ app.get("/error-demo", (req, res) => {
 });
 
 app.use(errorHandler);
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`
+if (!process.env.VERCEL) {
+  app.listen(PORT, () =>
+    console.log(`
   😎 Sab set hai bhai!
   🚀 Server successfully chal raha hai.
   📍 Port: ${PORT}
   🌐 Yahan visit karo: http://127.0.0.1:${PORT}/`)
-);
+  );
+}
+
+export default app;
