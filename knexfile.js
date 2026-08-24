@@ -6,10 +6,10 @@
 import "dotenv/config";
 
 const connection = {
-  host: "aws-0-ap-southeast-2.pooler.supabase.com",
+  host: "aws-0-ap-northeast-2.pooler.supabase.com",
   port: 5432,
   database: "postgres",
-  user: "postgres.mcagjrbixpxwgpxfavyv",
+  user: "postgres.jbibbzfuireaercishpn",
   password: process.env.DB_PASSWORD,
   ssl: { rejectUnauthorized: false },
 };
