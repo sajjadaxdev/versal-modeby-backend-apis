@@ -3,19 +3,22 @@
  */
 
 
-require("dotenv").config();
+import "dotenv/config";
 
-module.exports = {
+const connection = {
+  host: "aws-0-ap-southeast-2.pooler.supabase.com",
+  port: 5432,
+  database: "postgres",
+  user: "postgres.mcagjrbixpxwgpxfavyv",
+  password: process.env.DB_PASSWORD,
+  ssl: { rejectUnauthorized: false },
+};
+
+export default {
 
   development: {
     client: 'postgresql',
-    connection: {
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-    },
+    connection,
     
     migrations: {
       directory: "./db/migrations"
@@ -29,13 +32,7 @@ module.exports = {
 
   staging: {
     client: 'postgresql',
-    connection: {
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-    },
+    connection,
     pool: {
       min: 2,
       max: 10
@@ -54,12 +51,7 @@ module.exports = {
 
   production: {
     client: 'postgresql',
-    connection: {
-      host: process.env.DB_HOST,
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-    },
+    connection,
     pool: {
       min: 2,
       max: 10
