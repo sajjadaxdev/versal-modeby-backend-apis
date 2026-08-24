@@ -1,5 +1,5 @@
 node_modules
 .env
-knexfile.js
+# knexfile.js
 logs/*
 config/firebase-service-account.json
