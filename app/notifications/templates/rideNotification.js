@@ -1,9 +1,5 @@
-import {
-    RIDE_EN_ROUTE_PICKUP,
-    RIDE_DRIVER_ARRIVED,
-    RIDE_STARTED,
-    RIDE_COMPLETED,
-} from "../notificationTypes.js";
+import { RIDE_EN_ROUTE_PICKUP, RIDE_DRIVER_ARRIVED, RIDE_STARTED, } from "../notificationTypes.js";
+
 
 /*
 |--------------------------------------------------------------------------
@@ -75,30 +71,6 @@ export const rideStartedTemplate = async ({
             type: RIDE_STARTED,
             ride_id: rideId ? String(rideId) : "",
             status: "in_progress",
-        },
-    };
-};
-
-/*
-|--------------------------------------------------------------------------
-| Ride Completed
-|--------------------------------------------------------------------------
-*/
-export const rideCompletedTemplate = async ({
-    rideId = null,
-    driverName = "Your driver",
-}) => {
-
-    return {
-        title: "Ride completed",
-        body: `Your ride with ${driverName} has been completed successfully.`,
-
-        type: RIDE_COMPLETED,
-
-        data: {
-            type: RIDE_COMPLETED,
-            ride_id: rideId ? String(rideId) : "",
-            status: "completed",
         },
     };
 };

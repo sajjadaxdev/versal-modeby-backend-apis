@@ -98,11 +98,16 @@ export const recordTrack = async (
     | Create Ride Track
     |--------------------------------------------------------------------------
     */
+    const heading = data.heading != null
+        ? Math.round(Number(data.heading))
+        : null;
+
+
     const track = await rideTrackRepo.create({
         ride_id: activeRide.id,
         latitude: data.latitude,
         longitude: data.longitude,
-        heading: data.heading,
+        heading,
         speed: data.speed,
     });
 

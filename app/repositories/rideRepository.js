@@ -77,13 +77,6 @@ export const getRideStatus = async (rideId) => {
             "r.pickup_lat",
             "r.pickup_lng",
 
-            "r.ride_picked_at",
-            "r.ride_dropped_at",
-
-            "r.fare_final",
-            "r.final_duration_minutes",
-            "r.final_distance_km",
-            
             // Driver data
             "d.first_name as driver_first_name",
             "d.last_name as driver_last_name",
@@ -200,9 +193,6 @@ export const getRideTracking = async (rideId, userId) => {
             "r.distance_km",
             "r.duration_minutes",
 
-            "r.final_distance_km",
-            "r.final_duration_minutes",
-
             "r.fare_estimate",
             "r.fare_final",
 
@@ -294,64 +284,19 @@ export const updateRideStatus = async (
     driverId,
     currentStatus,
     newStatus,
-    completionData = null,
     trx = knex
 ) => {
 
     const db = trx || knex;
 
-    /*
-    |--------------------------------------------------------------------------
-    | Base Update Data
-    |--------------------------------------------------------------------------
-    */
-    const updateData = {
-        status: newStatus,
-        updated_at: db.fn.now(),
-    };
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Ride Started
-    |--------------------------------------------------------------------------
-    |
-    | Store the exact time when the driver starts the ride.
-    |
-    */
-    if (currentStatus === "arrived_pickup" && newStatus === "in_progress") {
-        updateData.ride_picked_at = db.fn.now();
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Ride Completed
-    |--------------------------------------------------------------------------
-    |
-    | Store the exact time when the driver completes the ride.
-    |
-    */
-    if (currentStatus === "in_progress" && newStatus === "completed") {
-        updateData.ride_dropped_at  = completionData?.ride_dropped_at ?? db.fn.now();
-
-        updateData.final_distance_km      = completionData?.final_distance_km ?? 0;
-        updateData.final_duration_minutes = completionData?.final_duration_minutes ?? 0;
-
-        updateData.fare_final       = completionData?.fare_final ?? 0;
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Atomic Update
-    |--------------------------------------------------------------------------
-    */
     const [ride] = await db("rides")
         .where("id", rideId)
         .where("driver_id", driverId)
         .where("status", currentStatus)
-        .update(updateData)
+        .update({
+            status: newStatus,
+            updated_at: db.fn.now(),
+        })
         .returning("*");
 
     return ride;
