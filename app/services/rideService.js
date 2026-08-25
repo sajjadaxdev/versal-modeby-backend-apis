@@ -606,6 +606,8 @@ export const getRideTracking = async (
 
     const imageBaseUrl = getBaseUrl();
 
+    const currency = (await currencyService.getActiveCurrency()).data ?? {};
+
     /*
     |--------------------------------------------------------------------------
     | Response
@@ -639,6 +641,7 @@ export const getRideTracking = async (
                 final_duration_minutes: ride.final_duration_minutes != null ? Number(ride.final_duration_minutes) : null,
                 fare_estimate: ride.fare_estimate != null ? Number(ride.fare_estimate) : null,
                 fare_final: ride.fare_final != null ? Number(ride.fare_final) : null,
+                formatted_fare_final: formatCurrency(updatedRide.fare_final, currency),
                 ride_picked_at: ride.ride_picked_at,
                 ride_dropped_at: ride.ride_dropped_at,
             },
@@ -1054,6 +1057,7 @@ export const updateRideStatus = async ({
         console.error(`Failed to notify rider about ride ${parsedRideId}:`, notificationError);
     }
 
+    const currency = (await currencyService.getActiveCurrency()).data ?? {};
 
     /*
     |--------------------------------------------------------------------------
@@ -1070,6 +1074,7 @@ export const updateRideStatus = async ({
             distance_km: Number(updatedRide.distance_km || 0),
             duration_minutes: Number(updatedRide.duration_minutes || 0),
             fare_final: Number(updatedRide.fare_final || 0),
+            formatted_fare_final: formatCurrency(updatedRide.fare_final, currency),
             ride_picked_at: updatedRide.ride_picked_at,
             ride_dropped_at: updatedRide.ride_dropped_at,
 
