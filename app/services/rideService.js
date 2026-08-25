@@ -641,7 +641,7 @@ export const getRideTracking = async (
                 final_duration_minutes: ride.final_duration_minutes != null ? Number(ride.final_duration_minutes) : null,
                 fare_estimate: ride.fare_estimate != null ? Number(ride.fare_estimate) : null,
                 fare_final: ride.fare_final != null ? Number(ride.fare_final) : null,
-                formatted_fare_final: formatCurrency(updatedRide.fare_final, currency),
+                formatted_fare_final: formatCurrency(ride.fare_final, currency),
                 ride_picked_at: ride.ride_picked_at,
                 ride_dropped_at: ride.ride_dropped_at,
             },
