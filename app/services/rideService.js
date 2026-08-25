@@ -14,7 +14,9 @@ import { sendNotification } from "../services/notificationService.js";
 import { rideRequestTemplate } from "../notifications/templates/driverNotification.js";
 import { getBaseUrl } from "../helpers/fileHelper.js";
 import { calculateDistanceKm, calculateEtaMinutes } from "../helpers/geoHelper.js";
-import { rideEnRoutePickupTemplate, driverArrivedPickupTemplate, rideStartedTemplate, } from "../notifications/templates/rideNotification.js";
+import { rideEnRoutePickupTemplate, driverArrivedPickupTemplate, rideStartedTemplate, rideCompletedTemplate, } from "../notifications/templates/rideNotification.js";
+import * as fareService from "./fareService.js";
+import * as rideTrackRepo from "../repositories/rideTrackRepository.js";
 
 export const getRideOptions = async (data) => {
 
@@ -359,6 +361,14 @@ export const getRideStatus = async (rideId) => {
         ride_id: Number(ride.ride_id),
         status: ride.ride_status,
         driver: null,
+
+        final_distance_km: Number(ride.final_distance_km || 0),
+        final_duration_minutes: Number(ride.final_duration_minutes || 0),
+        fare_final: Number(ride.fare_final || 0),
+
+        ride_picked_at: ride.ride_picked_at,
+        ride_dropped_at: ride.ride_dropped_at,
+        
     };
 
 
@@ -507,7 +517,7 @@ export const getRideTracking = async (
     userId,
     rideId
 ) => {
-
+    
     /*
     |--------------------------------------------------------------------------
     | Get Ride
@@ -625,6 +635,8 @@ export const getRideTracking = async (
                 },
                 distance_km: ride.distance_km != null ? Number(ride.distance_km) : null,
                 duration_minutes: ride.duration_minutes != null ? Number(ride.duration_minutes) : null,
+                final_distance_km: ride.final_distance_km != null ? Number(ride.final_distance_km) : null,
+                final_duration_minutes: ride.final_duration_minutes != null ? Number(ride.final_duration_minutes) : null,
                 fare_estimate: ride.fare_estimate != null ? Number(ride.fare_estimate) : null,
                 fare_final: ride.fare_final != null ? Number(ride.fare_final) : null,
                 ride_picked_at: ride.ride_picked_at,
@@ -640,7 +652,6 @@ export const getRideTracking = async (
                     username: ride.rider_username,
                     phone: ride.rider_phone,
                     email: ride.rider_email,
-                    avatar: ride.rider_avatar ? `${imageBaseUrl}/${ride.rider_avatar}` : null,
                     avatar: ride.rider_avatar
                     ? (
                         ride.rider_avatar.startsWith('http://') ||
@@ -735,9 +746,83 @@ const buildRideStatusNotification = async ({
         case "in_progress":
             return await rideStartedTemplate({rideId, driverName});
 
+        case "completed":
+            return await rideCompletedTemplate({rideId, driverName});
+
         default:
             return null;
     }
+};
+
+/*
+|--------------------------------------------------------------------------
+| Calculate Actual Ride Distance
+|--------------------------------------------------------------------------
+|
+| Calculates actual distance travelled by the driver using
+| sequential ride tracking points.
+|
+*/
+const calculateActualRideDistance = async (rideId) => {
+
+    const tracks = await rideTrackRepo.getByRideId(rideId);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Not Enough Tracking Points
+    |--------------------------------------------------------------------------
+    */
+    if (!tracks || tracks.length < 2) {
+        return 0;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Calculate Sequential Distance
+    |--------------------------------------------------------------------------
+    */
+
+    let totalDistanceMeters = 0;
+
+    for (let i = 1; i < tracks.length; i++) {
+
+        const previousTrack = tracks[i - 1];
+        const currentTrack = tracks[i];
+
+        const distanceMeters = calculateDistanceMeters(
+            Number(previousTrack.latitude),
+            Number(previousTrack.longitude),
+            Number(currentTrack.latitude),
+            Number(currentTrack.longitude)
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Ignore Invalid GPS Jump
+        |--------------------------------------------------------------------------
+        |
+        | A GPS error can sometimes produce an unrealistic jump.
+        |
+        | Ignore individual segments greater than 1 km.
+        | Normal ride tracking points are recorded frequently,
+        | so a >1 km single jump is treated as invalid GPS data.
+        |
+        */
+        if (distanceMeters > 1000) {
+            continue;
+        }
+
+        totalDistanceMeters += distanceMeters;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Convert Meters → Kilometers
+    |--------------------------------------------------------------------------
+    */
+    return Number((totalDistanceMeters / 1000).toFixed(2));
 };
 
 /*
@@ -772,6 +857,7 @@ export const updateRideStatus = async ({
         "en_route_pickup",
         "arrived_pickup",
         "in_progress",
+        "completed",
     ];
 
     if (!allowedStatuses.includes(status))
@@ -810,6 +896,7 @@ export const updateRideStatus = async ({
         accepted: "en_route_pickup",
         en_route_pickup: "arrived_pickup",
         arrived_pickup: "in_progress",
+        in_progress: "completed",
     };
 
     /*
@@ -825,6 +912,88 @@ export const updateRideStatus = async ({
     if (expectedNextStatus !== status)
         throw new AppError(`Invalid ride status transition: ` + `${ride.ride_status} → ${status}.`, 409);
 
+    /*
+    |--------------------------------------------------------------------------
+    | Completion Data
+    |--------------------------------------------------------------------------
+    */
+    let completionData = null;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ride Completion
+    |--------------------------------------------------------------------------
+    |
+    | When the driver completes an in-progress ride:
+    |
+    | 1. Calculate actual distance from ride tracks.
+    | 2. Calculate actual duration from ride_picked_at.
+    | 3. Calculate final fare.
+    |
+    */
+    if (status === "completed") {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Ride Pickup Time Must Exist
+        |--------------------------------------------------------------------------
+        */
+        if (!ride.ride_picked_at) {
+            throw new AppError("Ride pickup time is not available. Unable to complete ride.", 409);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Completion Time
+        |--------------------------------------------------------------------------
+        */
+        const rideDroppedAt = new Date();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Calculate Actual Distance
+        |--------------------------------------------------------------------------
+        */
+        const actualDistanceKm = await calculateActualRideDistance(
+            parsedRideId
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Calculate Actual Duration
+        |--------------------------------------------------------------------------
+        */
+        const ridePickedAt = new Date(ride.ride_picked_at);
+        const durationMilliseconds = rideDroppedAt.getTime() - ridePickedAt.getTime();
+        const durationMinutes = Math.max(0,Number((durationMilliseconds / 60000).toFixed(2)));
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Calculate Final Fare
+        |--------------------------------------------------------------------------
+        */
+        const finalFare = await fareService.calculateFare({
+            vehicleTypeId: ride.vehicle_type_id,
+            distanceKm: actualDistanceKm,
+            durationMinutes: durationMinutes,
+        });
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Completion Data
+        |--------------------------------------------------------------------------
+        */
+
+        completionData = {
+            final_distance_km: actualDistanceKm,
+            final_duration_minutes: durationMinutes,
+            fare_final: finalFare.total_fare,
+            ride_dropped_at: rideDroppedAt,
+        };
+
+    }
 
     /*
     |--------------------------------------------------------------------------
@@ -835,9 +1004,9 @@ export const updateRideStatus = async ({
         parsedRideId,
         ride.driver_id,
         ride.ride_status,
-        status
+        status,
+        completionData
     );
-
 
     /*
     |--------------------------------------------------------------------------
@@ -893,10 +1062,17 @@ export const updateRideStatus = async ({
     */
     return {
         success: true,
-        message: "Ride status updated successfully.",
+        message:  status === "completed" ? "Ride completed successfully." : "Ride status updated successfully.",
         data: {
+
             ride_id: Number(updatedRide.id),
             status: updatedRide.status,
+            distance_km: Number(updatedRide.distance_km || 0),
+            duration_minutes: Number(updatedRide.duration_minutes || 0),
+            fare_final: Number(updatedRide.fare_final || 0),
+            ride_picked_at: updatedRide.ride_picked_at,
+            ride_dropped_at: updatedRide.ride_dropped_at,
+
             driver: ride.driver_id
                 ? {
                     driver_id: Number(ride.driver_id),

@@ -15,6 +15,7 @@ export const RIDE_CANCELLED = "ride_cancelled";
 export const RIDE_EN_ROUTE_PICKUP = "ride_en_route_pickup";
 export const RIDE_DRIVER_ARRIVED = "ride_driver_arrived";
 export const RIDE_STARTED = "ride_started";
+export const RIDE_COMPLETED = "ride_completed";
 
 export const CHAT_MESSAGE = "chat_message";
 export const PAYMENT = "payment";
