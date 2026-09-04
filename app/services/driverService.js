@@ -905,3 +905,150 @@ export const getDriverLocation = async (driverId) => {
         data: driverLocationTransformer(location),
     };
 };
+
+/*
+|--------------------------------------------------------------------------
+| Driver Session Recovery
+|--------------------------------------------------------------------------
+*/
+
+const getDriverNextAction = (ride) => {
+
+    if (!ride) {
+        return null;
+    }
+
+    switch (ride.status) {
+
+        case "accepted":
+        case "en_route_pickup":
+            return "ride_heading";
+
+        case "arrived_pickup":
+            return "ride_waiting";
+
+        case "in_progress":
+            return "active_ride";
+
+        default:
+            return null;
+    }
+};
+
+
+export const getSession = async (userId) => {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Find Driver
+    |--------------------------------------------------------------------------
+    */
+
+    const driver = await driverRepo.findByUserId(userId, [
+        "id",
+        "is_online",
+        "is_available",
+        "verification_status",
+    ]);
+
+    if (!driver) {
+        throw new AppError("Driver not found.", 404);
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Find Active Ride
+    |--------------------------------------------------------------------------
+    */
+    const ride = await driverRepo.getActiveRideForSessionByDriverId(driver.id);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Determine Next Action
+    |--------------------------------------------------------------------------
+    */
+    let nextAction;
+
+    if (ride) {
+        nextAction = getDriverNextAction(ride);
+    } else if (driver.is_online) {
+        nextAction = "driver_dashboard";
+    } else {
+        nextAction = "driver_home";
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Response
+    |--------------------------------------------------------------------------
+    */
+
+    return {
+        success: true,
+        message: "Driver session fetched successfully.",
+
+        data: {
+            role: "driver",
+
+            online: Boolean(driver.is_online),
+
+            available: Boolean(driver.is_available),
+
+            hasActiveRide: Boolean(ride),
+
+            nextAction,
+
+            ride: ride
+                ? {
+                    id: ride.id,
+                    status: ride.status,
+
+                    riderId: ride.rider_id,
+                    riderName: ride.rider_name,
+                    riderPhone: ride.rider_phone,
+                    riderAvatar: ride.rider_avatar,
+
+                    pickupAddress: ride.pickup_address,
+                    pickupLat: ride.pickup_lat,
+                    pickupLng: ride.pickup_lng,
+
+                    dropAddress: ride.drop_address,
+                    dropLat: ride.drop_lat,
+                    dropLng: ride.drop_lng,
+
+                    distanceKm: ride.distance_km,
+                    durationMinutes: ride.duration_minutes,
+
+                    fareEstimate: ride.fare_estimate,
+                    fareFinal: ride.fare_final,
+
+                    vehicleId: ride.vehicle_id,
+
+                    vehicle: {
+                        make: ride.vehicle_make,
+                        model: ride.vehicle_model,
+                        year: ride.vehicle_year,
+                        color: ride.vehicle_color,
+                        registrationNumber: ride.vehicle_registration_number,
+                        image: ride.vehicle_image,
+                    },
+
+                    vehicleType: {
+                        id: ride.vehicle_type_id,
+                        name: ride.vehicle_type_name,
+                        slug: ride.vehicle_type_slug,
+                        icon: ride.vehicle_type_icon,
+                        mapIcon: ride.vehicle_type_map_icon,
+                        seatingCapacity: ride.vehicle_seating_capacity,
+                    },
+
+                    createdAt: ride.created_at,
+                    updatedAt: ride.updated_at,
+                }
+                : null,
+        },
+    };
+};

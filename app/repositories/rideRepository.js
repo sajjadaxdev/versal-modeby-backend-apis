@@ -226,6 +226,8 @@ export const getRideTracking = async (rideId, userId) => {
             // DRIVER USER
             // ========================================
             "u.avatar as driver_avatar",
+            "u.phone as driver_phone",
+            
 
             // --------------------------------
             // VEHICLE

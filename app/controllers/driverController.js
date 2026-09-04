@@ -362,3 +362,17 @@ export const getDriverLocation = async (req, res, next) => {
         next(error);
     }
 };
+
+export const getSession = async (req, res, next) => {
+
+    try {
+
+        const response = await driverService.getSession(req.user.id);
+
+        return res.json(response);
+
+    } catch (error) {
+
+        next(error);
+    }
+};

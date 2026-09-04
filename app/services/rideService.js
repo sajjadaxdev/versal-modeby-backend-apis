@@ -674,6 +674,7 @@ export const getRideTracking = async (
                     user_id: Number(ride.driver_user_id),
                     first_name: ride.driver_first_name,
                     last_name: ride.driver_last_name,
+                    phone: ride.driver_phone || null,
                     rating: ride.driver_rating != null ? Number(ride.driver_rating) : 0,
                     driver_personal_picture: ride.driver_personal_picture ? `${imageBaseUrl}/${ride.driver_personal_picture}` : null,
                     avatar: ride.driver_avatar ? `${imageBaseUrl}/${ride.driver_avatar}` : null,

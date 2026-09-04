@@ -748,3 +748,101 @@ export const getActiveRideByDriverId = async (driverId) => {
         .where("status", "in_progress")
         .first();
 };
+
+/*
+|--------------------------------------------------------------------------
+| Get Active Ride For Driver Session Recovery
+|--------------------------------------------------------------------------
+|
+| Purpose:
+| - Used only when driver app starts/resumes and session needs recovery.
+|
+| Active statuses:
+| - accepted
+| - en_route_pickup
+| - arrived_pickup
+| - in_progress
+|
+| "requested" is excluded because a requested ride has not yet been
+| assigned to a driver.
+|
+|--------------------------------------------------------------------------
+*/
+
+export const getActiveRideForSessionByDriverId = async (driverId) => {
+
+    return await knex("rides as r")
+
+        // Rider
+        .leftJoin("users as ru", "ru.id", "r.rider_id")
+
+        // Vehicle
+        .leftJoin("vehicles as v", "v.id", "r.vehicle_id")
+
+        // Vehicle Type
+        .leftJoin("vehicle_types as vt", "vt.id", "r.vehicle_type_id")
+
+        .where("r.driver_id", driverId)
+
+        .whereIn("r.status", [
+            "accepted",
+            "en_route_pickup",
+            "arrived_pickup",
+            "in_progress",
+        ])
+
+        .select([
+            // Ride
+            "r.id",
+            "r.status",
+            "r.rider_id",
+
+            "r.pickup_address",
+            "r.pickup_lat",
+            "r.pickup_lng",
+
+            "r.drop_address",
+            "r.drop_lat",
+            "r.drop_lng",
+
+            "r.distance_km",
+            "r.duration_minutes",
+
+            "r.fare_estimate",
+            "r.fare_final",
+
+            "r.scheduled_time",
+
+            "r.ride_picked_at",
+            "r.ride_dropped_at",
+
+            "r.created_at",
+            "r.updated_at",
+
+            // Rider
+            "ru.username as rider_name",
+            "ru.phone as rider_phone",
+            "ru.email as rider_email",
+            "ru.avatar as rider_avatar",
+
+            // Vehicle
+            "v.id as vehicle_id",
+            "v.make as vehicle_make",
+            "v.model as vehicle_model",
+            "v.year as vehicle_year",
+            "v.color as vehicle_color",
+            "v.registration_number as vehicle_registration_number",
+            "v.vehicle_image",
+
+            // Vehicle Type
+            "vt.id as vehicle_type_id",
+            "vt.name as vehicle_type_name",
+            "vt.slug as vehicle_type_slug",
+            "vt.icon as vehicle_type_icon",
+            "vt.map_icon as vehicle_type_map_icon",
+            "vt.seating_capacity as vehicle_type_seating_capacity",
+        ])
+
+        .orderBy("r.id", "desc")
+        .first();
+};

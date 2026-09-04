@@ -28,6 +28,7 @@ router.patch("/:driverId/documents/:documentType", validateRequest(driverValidat
 
 router.patch("/me/online-status", validateRequest(driverValidator.validateDriverOnlineStatus), driverController.updateOnlineStatus );
 router.get("/me/online-status", driverController.getOnlineStatus );
+router.get("/me/session", driverController.getSession);
 
 router.patch("/me/location", validateRequest(driverValidator.validateDriverLocation), driverController.updateLocation);
 router.get("/me/location", driverController.getMyLocation);

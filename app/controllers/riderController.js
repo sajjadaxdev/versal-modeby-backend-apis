@@ -35,3 +35,17 @@ export const remove = async (req, res, next) => {
         next(e);
     }
 };
+
+export const getSession = async (req, res, next) => {
+
+    try {
+
+        const result = await riderService.getSession(req.user.id);
+
+        return res.json(result);
+
+    } catch (error) {
+
+        next(error);
+    }
+};

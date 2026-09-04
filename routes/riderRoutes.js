@@ -13,5 +13,6 @@ router.post("/", validateRequest(createRiderValidator), riderController.create);
 router.get("/profile", riderController.profile);
 router.put("/profile", validateRequest(updateRiderValidator), riderController.update);
 router.delete("/profile", riderController.remove);
+router.get("/session", riderController.getSession);
 
 export default router;
