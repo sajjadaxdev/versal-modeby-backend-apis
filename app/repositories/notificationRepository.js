@@ -44,6 +44,7 @@ export const findByUser = async (userId, filters = {}) => {
 
     const rows = await knex("notifications")
         .where("user_id", userId)
+        .orderBy("is_read", "asc")
         .orderBy("created_at", "desc")
         .limit(limit)
         .offset(offset);

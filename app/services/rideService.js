@@ -124,6 +124,7 @@ export const requestRide = async (userId, data) => {
         distance_km: data.distance_km,
         duration_minutes: data.duration_minutes,
         fare_estimate: data.fare_estimate,
+        ride_type: data.ride_type,
         status: "requested"
     });
 
